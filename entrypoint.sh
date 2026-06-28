@@ -1,8 +1,10 @@
 #!/bin/bash
 set -e
 
-echo "Waiting for DB..."
+cd /app
+export PYTHONPATH=/app
 
+echo "Waiting for DB..."
 python scripts/wait_for_db.py
 
 echo "Running migrations..."

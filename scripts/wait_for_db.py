@@ -2,6 +2,12 @@
 
 import asyncio
 import sys
+from pathlib import Path
+
+# Ensure project root is on sys.path when run as: python scripts/wait_for_db.py
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
