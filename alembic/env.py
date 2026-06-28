@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from alembic import context
 from app.core.config import get_settings
 from app.db.base import Base
+from app.db.database_url import get_connect_args
 from app.models import ApiKey, Event, User  # noqa: F401
 
 config = context.config
@@ -43,6 +44,7 @@ async def run_async_migrations() -> None:
     connectable = create_async_engine(
         settings.database_url,
         poolclass=pool.NullPool,
+        connect_args=get_connect_args(settings.database_url),
     )
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)

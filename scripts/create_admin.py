@@ -8,16 +8,18 @@ from sqlalchemy import select
 from app.core.config import get_settings
 from app.core.security import hash_password
 from app.db.base import Base
-from app.db.session import AsyncSessionLocal, engine
+from app.db.session import get_engine, get_session_factory
 from app.models import User
 
 
 async def main() -> None:
     settings = get_settings()
+    engine = get_engine()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    async with AsyncSessionLocal() as session:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
         result = await session.execute(
             select(User).where(User.email == settings.admin_email)
         )

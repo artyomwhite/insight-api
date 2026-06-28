@@ -11,7 +11,7 @@ from sqlalchemy import func, select
 from app.core.config import get_settings
 from app.core.constants import DEMO_EVENT_TYPES
 from app.core.security import generate_api_key, hash_password
-from app.db.session import AsyncSessionLocal
+from app.db.session import get_session_factory
 from app.models import ApiKey, Event, User
 
 
@@ -50,7 +50,8 @@ async def seed() -> None:
     settings = get_settings()
     target_count = random.randint(3000, 5000)
 
-    async with AsyncSessionLocal() as session:
+    session_factory = get_session_factory()
+    async with session_factory() as session:
         # Admin user
         result = await session.execute(select(User).where(User.email == settings.admin_email))
         admin = result.scalar_one_or_none()
