@@ -6,6 +6,8 @@ from typing import Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.db.database_url import normalize_database_url
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -52,12 +54,8 @@ class Settings(BaseSettings):
     @field_validator("database_url", mode="before")
     @classmethod
     def fix_database_url(cls, v: str) -> str:
-        """Render provides postgres:// — convert to asyncpg driver."""
-        if v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql+asyncpg://", 1)
-        if v.startswith("postgresql://") and "+asyncpg" not in v:
-            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
-        return v
+        """Normalize to postgresql+asyncpg (never psycopg2)."""
+        return normalize_database_url(v)
 
     @property
     def cors_origins_list(self) -> list[str]:

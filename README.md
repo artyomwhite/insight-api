@@ -41,7 +41,7 @@ Built as a **portfolio-grade** project — clean architecture, production patter
 - **PostgreSQL Aggregations** — `date_trunc`, `COUNT DISTINCT`, window functions
 - **Layered Architecture** — api → services → repositories → models
 - **Alembic Migrations** — version-controlled schema
-- **Docker Ready** — multi-stage build, non-root user, auto-migrations
+- **Docker Ready** — root `Dockerfile`, `entrypoint.sh`, auto-migrations via asyncpg
 - **Professional OpenAPI** — tagged endpoints with descriptions and examples
 
 ---
@@ -278,34 +278,54 @@ curl -X POST http://localhost:8000/api/v1/auth/login \
 
 ## Docker
 
-Production Dockerfile features:
-- **Multi-stage build** — slim runtime image
-- **Non-root user** — runs as `insight` (uid 1000)
+Production container (`./Dockerfile` + `./entrypoint.sh`):
+
+- **Python 3.11-slim** base image
+- **asyncpg** driver only (no psycopg2)
 - **Auto-migrations** — `alembic upgrade head` on container start
 - **Health check** — `GET /api/v1/health`
+- Binds to `$PORT` (Render) or `8000` locally
 
 ```bash
-docker build -t insight-api .
-docker run -p 8000:8000 --env-file .env insight-api
+# Local
+docker compose up --build
+
+# Manual build
+docker build -f ./Dockerfile -t insight-api .
+docker run -p 8000:8000 -e PORT=8000 --env-file .env insight-api
 ```
+
+**Startup flow** (`./entrypoint.sh`):
+
+1. `python scripts/wait_for_db.py` — async connection check
+2. `alembic upgrade head` — async migrations
+3. `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
 ---
 
 ## Render Deployment
 
 1. Push repo to GitHub
-2. Create new **Blueprint** on [Render](https://render.com) from `render.yaml`
+2. Create **Web Service** on [Render](https://render.com) — uses root `./Dockerfile` automatically
 3. Set environment variables:
-   - `ADMIN_EMAIL`
-   - `ADMIN_PASSWORD`
-   - `CORS_ORIGINS`
-4. Render provisions PostgreSQL + Web Service automatically
+   - `DATABASE_URL` — Neon connection string (see below)
+   - `SECRET_KEY` — auto-generated or custom
+   - `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `CORS_ORIGINS`
+   - `ENVIRONMENT=production`
 
-`DATABASE_URL` and `SECRET_KEY` are injected by Render.
+Render injects `PORT` automatically. Do **not** hardcode port `8000` in production.
 
-After deploy:
+### Neon `DATABASE_URL` example
+
+```
+postgresql+asyncpg://user:password@ep-xxx.us-east-1.aws.neon.tech/neondb?sslmode=require
+```
+
+The app normalizes `postgres://` / `postgresql://` → `postgresql+asyncpg://` and converts `sslmode=require` → `ssl=require` for asyncpg.
+
+After deploy (Render Shell or one-off job):
+
 ```bash
-# SSH or one-off job
 python scripts/create_admin.py
 python scripts/seed_demo_events.py
 ```
@@ -316,7 +336,8 @@ python scripts/seed_demo_events.py
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | `postgresql+asyncpg://...` | PostgreSQL connection |
+| `DATABASE_URL` | `postgresql+asyncpg://...` | Async PostgreSQL URL (**asyncpg only**, no psycopg2) |
+| `PORT` | `8000` (local) | Set by Render in production |
 | `SECRET_KEY` | — | JWT signing key |
 | `ENVIRONMENT` | `development` | `development` / `production` |
 | `ACCESS_TOKEN_EXPIRE_HOURS` | `2` | JWT lifetime |
