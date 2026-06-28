@@ -50,9 +50,9 @@ Production-ready **event analytics backend** for tracking business events and po
 4. Query analytics: `GET /api/v1/analytics/overview`
         """,
         lifespan=lifespan,
-        docs_url="/docs" if settings.docs_enabled else None,
-        redoc_url="/redoc" if settings.docs_enabled else None,
-        openapi_url="/openapi.json" if settings.docs_enabled else None,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
         openapi_tags=[
             {"name": "Health", "description": "Service health and readiness probes"},
             {"name": "Authentication", "description": "Dashboard JWT authentication"},
@@ -128,13 +128,18 @@ Production-ready **event analytics backend** for tracking business events and po
 
     app.include_router(api_router)
 
-    @app.get("/", include_in_schema=False)
+    @app.get("/", tags=["Health"])
     async def root() -> dict[str, str]:
         return {
+            "status": "ok",
             "service": settings.app_name,
             "version": settings.app_version,
             "docs": "/docs",
         }
+
+    @app.get("/health", tags=["Health"], include_in_schema=False)
+    async def health() -> dict[str, str]:
+        return {"status": "ok", "service": settings.app_name}
 
     return app
 
