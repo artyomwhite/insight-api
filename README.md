@@ -88,7 +88,8 @@ insight-api/
 │   ├── services/        # Business logic
 │   └── middleware/      # Request ID tracing
 ├── alembic/             # Database migrations
-├── docker/              # Dockerfile + entrypoint
+├── Dockerfile           # Production container image
+├── entrypoint.sh        # DB wait, migrations, uvicorn
 ├── scripts/             # Admin creation, demo seed
 ├── tests/               # pytest suite
 ├── docker-compose.yml
@@ -284,7 +285,7 @@ Production Dockerfile features:
 - **Health check** — `GET /api/v1/health`
 
 ```bash
-docker build -f docker/Dockerfile -t insight-api .
+docker build -t insight-api .
 docker run -p 8000:8000 --env-file .env insight-api
 ```
 

@@ -18,12 +18,13 @@ services:
   api:
     build:
       context: .
-      dockerfile: docker/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     env_file:
       - .env
     environment:
+      PORT: "8000"
       DATABASE_URL: postgresql+asyncpg://insight:insight@db:5432/insight
       ENVIRONMENT: development
     depends_on:
